@@ -4,4 +4,6 @@
     <string name="enter_players">Enter players</string>
     <string name="get_roles">Get roles</string>
     <string name="proceed">Proceed</string>
+    <string name="player_number">Player #%1$s</string>
+    <string name="add">add</string>
 </resources>
