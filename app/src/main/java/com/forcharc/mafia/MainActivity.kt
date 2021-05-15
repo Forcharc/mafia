@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltNavGraphViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -17,8 +18,12 @@ import com.forcharc.mafia.ui.screens.EnterPlayersScreen
 import com.forcharc.mafia.ui.screens.GetRolesScreen
 import com.forcharc.mafia.ui.screens.WelcomeScreen
 import com.forcharc.mafia.ui.theme.MafiaTheme
+import com.forcharc.mafia.ui.viewModels.PlayersViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @ExperimentalMaterialApi
     @ExperimentalAnimationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,14 +44,26 @@ class MainActivity : ComponentActivity() {
                                         WelcomeScreen(navController, exit)
                                     }
                                 }
-                                composable(NavDests.enterPlayersDestination) {
+                                composable(NavDests.enterPlayersDestination) { backStackEntry ->
                                     EnterExitAnimation(exitTransition = fadeOut()) { exit ->
-                                        EnterPlayersScreen(navController, exit)
+                                        val viewModel: PlayersViewModel =
+                                            hiltNavGraphViewModel(backStackEntry)
+                                        EnterPlayersScreen(
+                                            viewModel = viewModel,
+                                            navController = navController,
+                                            exit = exit
+                                        )
                                     }
                                 }
-                                composable(NavDests.getRolesDestination) {
+                                composable(NavDests.getRolesDestination) { backStackEntry ->
                                     EnterExitAnimation() { exit ->
-                                        GetRolesScreen(navController, exit)
+                                        val viewModel: PlayersViewModel =
+                                            hiltNavGraphViewModel(backStackEntry)
+                                        GetRolesScreen(
+                                            viewModel = viewModel,
+                                            navController = navController,
+                                            exit = exit
+                                        )
                                     }
                                 }
                             }
@@ -56,7 +73,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
 }
 
 @ExperimentalAnimationApi

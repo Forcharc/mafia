@@ -33,6 +33,7 @@ import androidx.navigation.compose.navigate
 import com.forcharc.mafia.NavDests
 import com.forcharc.mafia.R
 import com.forcharc.mafia.ui.anim.EnterExitAnimation
+import com.forcharc.mafia.ui.viewModels.PlayersViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -43,7 +44,8 @@ data class PlayerName(val id: Long, val name: String, var isAnimationShown: Bool
 @Composable
 fun EnterPlayersScreen(
     navController: NavHostController? = null,
-    exit: ((onExit: () -> Unit) -> Unit)? = null
+    exit: ((onExit: () -> Unit) -> Unit)? = null,
+    viewModel: PlayersViewModel? = null
 ) {
     val playerNames =
         remember {

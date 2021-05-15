@@ -4,10 +4,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.AnimationConstants
 import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Card
-import androidx.compose.material.Text
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,37 +20,79 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.forcharc.mafia.ui.viewModels.PlayersViewModel
 import kotlinx.coroutines.delay
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
+@ExperimentalMaterialApi
 @ExperimentalAnimationApi
 @Composable
-fun GetRolesScreen(navController: NavHostController, exit: (onExit: () -> Unit) -> Unit) {
+fun GetRolesScreen(
+    viewModel: PlayersViewModel,
+    navController: NavHostController,
+    exit: (onExit: () -> Unit) -> Unit
+) {
+
     SwipableCard()
+    //SwipeToUnlock()
+}
+
+@ExperimentalMaterialApi
+@Composable
+fun SwipeToUnlock() {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val swipeState = rememberSwipeableState(0)
+        val swipeButtonWidth = 70.dp
+        val swipeButtonHeight = 70.dp
+
+        val sizePx = with(LocalDensity.current) { (maxWidth - swipeButtonWidth).toPx() }
+        val anchors = mapOf(0f to 0, sizePx to 1) // Maps anchor points (in px) to states
+
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .swipeable(
+                    swipeState,
+                    anchors = anchors,
+                    thresholds = { _, _ -> FractionalThreshold(0.95f) },
+                    orientation = Orientation.Horizontal
+                )
+        ) {
+
+            Card(
+                modifier = Modifier
+                    .width(swipeButtonWidth)
+                    .height(swipeButtonHeight)
+                    .offset { IntOffset(swipeState.offset.value.roundToInt(), 0) }
+            ) {
+                Icon(Icons.Rounded.ArrowForward, contentDescription = "Swipe button")
+            }
+        }
+
+    }
 }
 
 @ExperimentalAnimationApi
 @Composable
 private fun SwipableCard() {
-    val offset = remember { mutableStateOf(Offset(0f, 0f)) }
+    var offset by remember { mutableStateOf(Offset(0f, 0f)) }
     val animatedOffset =
-        animateOffsetAsState(targetValue = offset.value)
+        animateOffsetAsState(targetValue = offset)
 
-    val isCardPressed = remember { mutableStateOf(false) }
-    val isCardVisible = remember {
-        mutableStateOf(true)
-    }
+    var isCardPressed by remember { mutableStateOf(false) }
+    var isCardVisible by remember { mutableStateOf(true) }
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectDragGestures(
-                    onDragStart = { isCardPressed.value = true },
-                    onDragEnd = { isCardPressed.value = false })
+                    onDragStart = { isCardPressed = true },
+                    onDragEnd = { isCardPressed = false })
                 { change, dragAmount ->
                     change.consumeAllChanges()
-                    offset.value += dragAmount
+                    offset += dragAmount
                 }
             },
         contentAlignment = Alignment.Center
@@ -56,27 +100,31 @@ private fun SwipableCard() {
         val widthPx = LocalDensity.current.run { maxWidth.toPx() }
         val heightPx = LocalDensity.current.run { maxHeight.toPx() }
 
-        LaunchedEffect(isCardPressed.value) {
-            if (!isCardPressed.value) {
+        LaunchedEffect(isCardPressed) {
+            if (!isCardPressed) {
                 when {
-                    abs(offset.value.x) >= (0.25 * widthPx) -> {
-                        if (offset.value.x > 0) {
-                            offset.value = Offset(2 * widthPx, 0f)
+                    abs(offset.x) >= (0.25 * widthPx) -> {
+                        if (offset.x > 0) {
+                            offset = Offset(2 * widthPx, 0f)
                         } else {
-                            offset.value = Offset(-2 * widthPx, 0f)
+                            offset = Offset(-2 * widthPx, 0f)
                         }
-                        makeNewCardAppear(isCardVisible, offset)
+                        makeNewCardAppear({ newIsCardVisible ->
+                            isCardVisible = newIsCardVisible
+                        }) { newOffset: Offset -> offset = newOffset }
                     }
-                    abs(offset.value.y) >= (0.25 * heightPx) -> {
-                        if (offset.value.y > 0) {
-                            offset.value = Offset(0f, 2 * heightPx)
+                    abs(offset.y) >= (0.25 * heightPx) -> {
+                        if (offset.y > 0) {
+                            offset = Offset(0f, 2 * heightPx)
                         } else {
-                            offset.value = Offset(0f, -2 * heightPx)
+                            offset = Offset(0f, -2 * heightPx)
                         }
-                        makeNewCardAppear(isCardVisible, offset)
+                        makeNewCardAppear({ newIsCardVisible ->
+                            isCardVisible = newIsCardVisible
+                        }) { newOffset: Offset -> offset = newOffset }
                     }
                     else -> {
-                        offset.value = Offset(0f, 0f)
+                        offset = Offset(0f, 0f)
                     }
                 }
             }
@@ -84,7 +132,7 @@ private fun SwipableCard() {
 
 
         AnimatedVisibility(
-            visible = isCardVisible.value,
+            visible = isCardVisible,
             modifier = Modifier
                 .width(200.dp)
                 .height(200.dp)
@@ -111,12 +159,12 @@ private fun SwipableCard() {
 }
 
 private suspend fun makeNewCardAppear(
-    isCardVisible: MutableState<Boolean>,
-    offset: MutableState<Offset>
+    onNewCardVisibility: (isVisible: Boolean) -> Unit,
+    onNewOffset: (offset: Offset) -> Unit
 ) {
-    isCardVisible.value = false
+    onNewCardVisibility(false)
     delay(AnimationConstants.DefaultDurationMillis.toLong())
-    offset.value = Offset(0f, 0f)
+    onNewOffset(Offset(0f, 0f))
     delay(AnimationConstants.DefaultDurationMillis.toLong())
-    isCardVisible.value = true
+    onNewCardVisibility(true)
 }
